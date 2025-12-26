@@ -1,0 +1,48 @@
+# Google Cloud Build configuration for Cloud Run deployment
+steps:
+  # Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-f",
+        "dockerFile",
+        "-t",
+        "gcr.io/$PROJECT_ID/ml-backend:latest",
+        ".",
+      ]
+
+  # Push the container image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/ml-backend:latest"]
+
+  # Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "ml-backend"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/ml-backend:latest"
+      - "--region"
+      - "us-central1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--memory"
+      - "512Mi"
+      - "--cpu"
+      - "1"
+      - "--max-instances"
+      - "10"
+      - "--set-env-vars"
+      - "DEBUG=False,ENVIRONMENT=production"
+      # Add more environment variables as needed
+
+# Store the built images
+images:
+  - "gcr.io/$PROJECT_ID/ml-backend:latest"
+
+# Set timeout for the build
+timeout: "1200s"

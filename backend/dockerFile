@@ -1,0 +1,35 @@
+# Use official Python runtime as base image
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PORT=8080
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies (tesseract for OCR, PostgreSQL client)
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    tesseract-ocr \
+    libtesseract-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy project files
+COPY . .
+
+# Create a non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Expose port (Cloud Run uses PORT env var, default 8080)
+EXPOSE 8080
+
+# Run the FastAPI application with uvicorn using the PORT environment variable
+CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
